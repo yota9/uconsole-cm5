@@ -5,7 +5,7 @@ kernel. Hardware support is provided by out-of-tree **DKMS modules** plus
 two **device-tree overlays**, so the kernel stays updatable
 (DKMS rebuilds the modules on kernel upgrades).
 
-Verified on kernel 6.12.75.
+Verified on kernel 6.12.75 and 6.18.34.
 
 ## What works
 
@@ -26,8 +26,7 @@ device-tree overlays and driven by out-of-tree modules:
 - `overlay/uconsole-audio-cm5-overlay.dts` - the RP1 audio output plus the AW8110
   speaker amplifier with a headphone-detect GPIO.
 
-The DKMS package `uconsole-cm5` builds these modules (see VERSIONS for origin and
-per-file status):
+The DKMS package `uconsole-cm5` builds these modules:
 
 - `panel-cwu50`, `ocp8178_bl` - display panel and backlight (ClockworkPi drivers).
 - `axp20x`, `axp20x-i2c`, `axp20x-regulator`, `axp20x_battery`, `axp20x_adc`,
