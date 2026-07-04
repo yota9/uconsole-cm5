@@ -1,0 +1,10 @@
+obj-m += panel-cwu50.o
+obj-m += ocp8178_bl.o
+obj-m += axp20x.o
+obj-m += axp20x-i2c.o
+obj-m += axp20x-regulator.o
+obj-m += axp20x_battery.o
+obj-m += axp20x_adc.o
+obj-m += snd-soc-simple-amplifier.o
+snd-soc-simple-amplifier-y := simple-amplifier.o
+obj-m += axp20x-pek.o

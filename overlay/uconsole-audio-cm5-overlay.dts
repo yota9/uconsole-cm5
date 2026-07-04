@@ -1,0 +1,87 @@
+/*
+ * uconsole-audio-cm5-overlay.dts
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2712";
+
+	/* enable the RP1 audio output on GPIO12/13 - verbatim from audremap-pi5 */
+	fragment@0 {
+		target = <&rp1_audio_out>;
+		frag0: __overlay__ {
+			pinctrl-0 = <&rp1_audio_out_12_13>;
+			pinctrl-names = "default";
+			status = "ok";
+		};
+	};
+
+
+	/* dummy codec + simple-audio-card - audremap-pi5 base, + aux-dev amp + hp-det */
+	fragment@2 {
+		target-path = "/";
+		__overlay__ {
+			rp1_audio_out_codec: rp1_audio_out_codec@0 {
+				compatible = "linux,spdif-dit";
+				#sound-dai-cells = <0>;
+				status = "ok";
+			};
+
+			rp1_audio_out_simple_card@0 {
+				compatible = "simple-audio-card";
+				simple-audio-card,name = "RP1-Audio-Out";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "ok";
+				/* headphone detect: HP_DET=GPIO10, high = inserted */
+				simple-audio-card,aux-devs = <&uconsole_spk_amp>;
+
+				simple-audio-card,dai-link@0 {
+					reg = <0>;
+					format = "left_j";
+					bitclock-master = <&sndcpu0>;
+					frame-master = <&sndcpu0>;
+
+					sndcpu0: cpu {
+						sound-dai = <&rp1_audio_out>;
+					};
+
+					codec {
+						sound-dai = <&rp1_audio_out_codec>;
+					};
+				};
+			};
+		};
+	};
+	/* pull-up for HP_DET (GPIO10): the jack code requests the line as GPIOD_IN
+	   without bias, but the hardware needs a pull-up (otherwise the Headphones
+	   Jack sticks at off). See simple-card-utils.c GPIOD_IN. */
+	fragment@3 {
+		target = <&rp1_gpio>;
+		__overlay__ {
+			uconsole_hp_det_pins: uconsole_hp_det_pins {
+				function = "gpio";
+				pins = "gpio10";
+				bias-pull-up;
+			};
+		};
+	};
+	/* speaker amp: our modified simple-audio-amplifier.
+	   enable-gpios = PA_EN (GPIO11); hp-det-gpios = HP_DET (GPIO10) - the driver
+	   auto-mutes speakers on headphone insertion. */
+	fragment@4 {
+		target-path = "/";
+		__overlay__ {
+			uconsole_spk_amp: audio-amplifier {
+				compatible = "simple-audio-amplifier";
+				enable-gpios = <&rp1_gpio 11 0>;
+				hp-det-gpios = <&rp1_gpio 10 0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&uconsole_hp_det_pins>;
+				sound-name-prefix = "Speaker Amp";
+			};
+		};
+	};
+};
