@@ -33,10 +33,9 @@ phase_system() {
   log "Packages (dkms, headers, dtc, wlr-randr)"
   local KVER; KVER="$(uname -r)"
   apt-get update
-  apt-get install -y dkms device-tree-compiler wlr-randr \
-      "linux-headers-${KVER}" 2>/dev/null \
-    || apt-get install -y dkms device-tree-compiler wlr-randr linux-headers-rpi-2712
-
+  apt-get install -y dkms device-tree-compiler wlr-randr brightnessctl
+  apt-get install -y "linux-headers-${KVER}" 2>/dev/null \
+    || apt-get install -y linux-headers-rpi-2712
   # 2. DKMS modules
   log "DKMS: build and install ${PKG}-${VER}"
   if dkms status -m "$PKG" -v "$VER" 2>/dev/null | grep -q .; then
