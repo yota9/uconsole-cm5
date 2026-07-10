@@ -39,6 +39,11 @@ are needed because those symbols are disabled in the stock kernel config.
 
 ## Install
 
+> In case you already have a custom ClockworkPi/Rex kernel installed, install these drivers first,
+> (step 2) then follow "Switching from a custom kernel to the stock Pi kernel" below to move onto
+> the stock kernel. When install.sh offers to reboot, decline — you'll reboot at the end of the
+> kernel switch instead.
+
 ### 1. Flash the SD card
 
 Flash stock Raspberry Pi OS (Trixie) with Raspberry Pi Imager. In the Imager
@@ -60,6 +65,52 @@ From your computer, in the directory that contains the `uconsole-cm5` folder
 
     ssh uconsole.local
     /tmp/uconsole-cm5/install.sh
+
+## Switching from a custom (ClockworkPi/Rex) kernel to the stock Pi kernel
+
+If the device already runs a ClockworkPi/Rex image with a **custom kernel**, this
+project is meant to run on the **stock Raspberry Pi kernel** instead. You can switch
+an existing install over to the stock kernel rather than reflashing.
+
+> ⚠️ **Verify package names on your device before running any of this.** Names differ
+> by board and image, and removing a kernel before a working one is installed can
+> leave the system unbootable. The commands below are a guide, not a verified
+> one-shot procedure.
+
+For CM5 (BCM2712) prefer `linux-image-rpi-2712` (+ `linux-headers-rpi-2712`) — it's
+the native build (16K pages). The `linux-image-rpi-v8` build also boots and works on
+CM5 (it's the 4K-page ARMv8 build; the bootloader still loads the correct CM5 device
+tree by hardware detection), just slightly less optimal. Confirm the package is
+available:
+
+    apt policy linux-image-rpi-2712
+
+### 1. Install the stock kernel FIRST (before removing anything)
+
+    sudo apt update
+    sudo apt install linux-image-rpi-2712 linux-headers-rpi-2712
+    sudo apt install --reinstall raspi-firmware   # ensures the kernel is copied into /boot/firmware
+
+### 2. Only then remove the custom kernel
+
+    # find the custom kernel package name first:
+    dpkg -l | grep -E 'linux-image|kernel'
+    # then remove it (replace <clockworkpi-kernel-pkg> with the name from above):
+    sudo apt remove <clockworkpi-kernel-pkg>
+
+If the custom image pins/holds the kernel (apt pinning or `kernel=` in config.txt),
+you may also need to remove that pin / that config.txt line so the stock kernel is
+used at boot.
+
+### 3. Reboot and verify
+
+    sudo reboot
+    # after boot:
+    uname -r          # should show the stock ...-rpi-2712 kernel
+
+After the switch, DKMS should rebuild the drivers for the stock kernel automatically.
+If they're missing after reboot (usually because the stock kernel's headers weren't present for the automatic rebuild),
+re-run install.sh to build them.
 
 ## Credits
 
@@ -84,3 +135,5 @@ for a vanilla kernel; the drivers themselves come from the following sources.
 - **This project** - the DKMS + overlay packaging for a stock kernel, the
   headphone auto-mute addition to simple-amplifier, and the PipeWire
   software-volume handling.
+
+- **Custom kernel switch instructions** - switching was tested by [gnzl on reddit](https://www.reddit.com/r/ClockworkPi/comments/1ungpfy/comment/ow5j4ki/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button)
