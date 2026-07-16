@@ -12,8 +12,23 @@ VER="0.1"
 SRC_DKMS="/usr/src/${PKG}-${VER}"
 BOOTDIR="/boot/firmware"
 [ -d "$BOOTDIR" ] || BOOTDIR="/boot"
-OVERLAYS_DIR="${BOOTDIR}/overlays"
 CONFIG_TXT="${BOOTDIR}/config.txt"
+
+# Some images (e.g. Ubuntu's raspi-firmware A/B updates) set os_prefix= in
+# config.txt so the bootloader loads the kernel, initramfs, cmdline AND
+# overlays from a subdirectory (typically "current/") instead of BOOTDIR
+# directly. Mirror that here so overlays land where the bootloader actually
+# looks; config.txt itself always stays at the top level, unprefixed.
+OS_PREFIX=""
+if [ -f "$CONFIG_TXT" ]; then
+  OS_PREFIX="$(awk '
+    /^\[/ { sect=tolower($0); gsub(/[][]/,"",sect); next }
+    /^[[:space:]]*os_prefix[[:space:]]*=/ && sect != "tryboot" {
+      sub(/^[^=]*=/,""); print; exit
+    }
+  ' "$CONFIG_TXT")"
+fi
+OVERLAYS_DIR="${BOOTDIR}/${OS_PREFIX}overlays"
 
 OVL_BASE="uconsole-cm5-base"
 OVL_AUDIO="uconsole-audio-cm5"
@@ -34,8 +49,23 @@ phase_system() {
   local KVER; KVER="$(uname -r)"
   apt-get update
   apt-get install -y dkms device-tree-compiler wlr-randr brightnessctl
-  apt-get install -y "linux-headers-${KVER}" 2>/dev/null \
-    || apt-get install -y linux-headers-rpi-2712
+  if [ -e "/lib/modules/${KVER}/build" ]; then
+    echo "  kernel headers for ${KVER} already present, skipping"
+  else
+    local DISTRO_ID="" DISTRO_ID_LIKE=""
+    if [ -r /etc/os-release ]; then
+      # shellcheck disable=SC1091
+      . /etc/os-release
+      DISTRO_ID="${ID:-}"; DISTRO_ID_LIKE="${ID_LIKE:-}"
+    fi
+    local FALLBACK_PKG="linux-headers-rpi-2712"
+    case " $DISTRO_ID $DISTRO_ID_LIKE " in
+      *ubuntu*) FALLBACK_PKG="linux-headers-raspi" ;;
+    esac
+    apt-get install -y "linux-headers-${KVER}" 2>/dev/null \
+      || apt-get install -y "$FALLBACK_PKG" \
+      || die "Could not install kernel headers for ${KVER} (tried linux-headers-${KVER} and ${FALLBACK_PKG}). Install matching kernel headers manually and re-run."
+  fi
   # 2. DKMS modules
   log "DKMS: build and install ${PKG}-${VER}"
   if dkms status -m "$PKG" -v "$VER" 2>/dev/null | grep -q .; then
@@ -66,6 +96,14 @@ phase_system() {
   if grep -qE '^[[:space:]]*dtoverlay=audremap-pi5' "$CONFIG_TXT" 2>/dev/null; then
     sed -i 's/^\([[:space:]]*dtoverlay=audremap-pi5\)/#\1  # replaced by uconsole-audio-cm5/' "$CONFIG_TXT"
     echo "  audremap-pi5 commented out"
+  fi
+  # spi0's CS0 line is GPIO8, which the panel overlay uses as its reset-gpio;
+  # with spi0 enabled the SPI controller claims that GPIO at boot and the
+  # panel fails to probe (-EBUSY). uConsole has no exposed SPI header, so
+  # it's safe to disable.
+  if grep -qE '^[[:space:]]*dtparam=spi=on' "$CONFIG_TXT" 2>/dev/null; then
+    sed -i 's/^\([[:space:]]*dtparam=spi=on\)/#\1  # disabled: GPIO8 (CS0) conflicts with the uconsole-cm5-base panel reset-gpio/' "$CONFIG_TXT"
+    echo "  dtparam=spi=on commented out (frees GPIO8 for the panel reset line)"
   fi
   local line
   for line in "dtparam=ant2" "dtoverlay=${OVL_BASE}" "dtoverlay=${OVL_AUDIO}"; do
