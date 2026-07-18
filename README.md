@@ -1,11 +1,14 @@
-# uConsole CM5 on vanilla Raspberry Pi OS
+# uConsole CM5 on vanilla Raspberry Pi OS (and Ubuntu)
 
 Runs a ClockworkPi uConsole (Compute Module 5) on a **stock Raspberry Pi OS**
-kernel. Hardware support is provided by out-of-tree **DKMS modules** plus
-two **device-tree overlays**, so the kernel stays updatable
-(DKMS rebuilds the modules on kernel upgrades).
+kernel, or on **Ubuntu's `raspi` kernel flavor** for CM5. Hardware support is
+provided by out-of-tree **DKMS modules** plus two **device-tree overlays**,
+so the kernel stays updatable (DKMS rebuilds the modules on kernel upgrades).
+`install.sh` detects the distro (via `/etc/os-release`) to pick the right
+kernel-headers package.
 
-Verified on kernel 6.12.75 and 6.18.34.
+Verified on kernel 6.12.75 and 6.18.34 (Raspberry Pi OS), and 7.0.0-1014-raspi
+(Ubuntu 26.04).
 
 ## What works
 
@@ -43,6 +46,9 @@ are needed because those symbols are disabled in the stock kernel config.
 > (step 2) then follow "Switching from a custom kernel to the stock Pi kernel" below to move onto
 > the stock kernel. When install.sh offers to reboot, decline — you'll reboot at the end of the
 > kernel switch instead.
+>
+> Running Ubuntu's `raspi` kernel flavor instead? Skip the flashing step below — install onto your
+> existing Ubuntu system and continue from step 2.
 
 ### 1. Flash the SD card
 
