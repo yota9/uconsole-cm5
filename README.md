@@ -46,6 +46,9 @@ are needed because those symbols are disabled in the stock kernel config.
 > (step 2) then follow "Switching from a custom kernel to the stock Pi kernel" below to move onto
 > the stock kernel. When install.sh offers to reboot, decline — you'll reboot at the end of the
 > kernel switch instead.
+>
+> Running Ubuntu's `raspi` kernel flavor instead? Skip the flashing step below — install onto your
+> existing Ubuntu system and continue from step 2.
 
 ### 1. Flash the SD card
 
@@ -57,9 +60,6 @@ settings set:
 
 Write the card, put it in the uConsole, and power on. Wait for first boot to
 finish (it resizes the filesystem and reboots once); the device then joins Wi-Fi.
-
-> Running Ubuntu's `raspi` kernel flavor instead? Skip this flashing step — install
-> onto your existing Ubuntu system and continue from step 2.
 
 ### 2. Copy this project to the device
 

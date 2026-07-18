@@ -23,12 +23,13 @@ OS_PREFIX=""
 if [ -f "$CONFIG_TXT" ]; then
   OS_PREFIX="$(awk '
     /^\[/ { sect=tolower($0); gsub(/[][]/,"",sect); next }
-    /^[[:space:]]*os_prefix[[:space:]]*=/ && sect != "tryboot" {
+    /^[[:space:]]*os_prefix[[:space:]]*=/ && sect != "tryboot" && sect != "none" {
       sub(/^[^=]*=/,""); print; exit
     }
   ' "$CONFIG_TXT")"
 fi
 OVERLAYS_DIR="${BOOTDIR}/${OS_PREFIX}overlays"
+[ -d "$OVERLAYS_DIR" ] || OVERLAYS_DIR="${BOOTDIR}/overlays"
 
 OVL_BASE="uconsole-cm5-base"
 OVL_AUDIO="uconsole-audio-cm5"
@@ -55,8 +56,8 @@ phase_system() {
     local DISTRO_ID="" DISTRO_ID_LIKE=""
     if [ -r /etc/os-release ]; then
       # shellcheck disable=SC1091
-      . /etc/os-release
-      DISTRO_ID="${ID:-}"; DISTRO_ID_LIKE="${ID_LIKE:-}"
+      DISTRO_ID="$( . /etc/os-release 2>/dev/null; echo "${ID:-}" )"
+      DISTRO_ID_LIKE="$( . /etc/os-release 2>/dev/null; echo "${ID_LIKE:-}" )"
     fi
     local FALLBACK_PKG="linux-headers-rpi-2712"
     case " $DISTRO_ID $DISTRO_ID_LIKE " in
